@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, listMediaItems, searchMovies } from './api'
+import { ApiError, getMovieByImdb, listMediaItems, searchMovies } from './api'
 
 describe('api client', () => {
   afterEach(() => {
@@ -31,5 +31,18 @@ describe('api client', () => {
     } as Response)
 
     await expect(listMediaItems()).rejects.toBeInstanceOf(ApiError)
+  })
+
+  it('calls IMDb lookup endpoint', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ imdbID: 'tt0372784', Title: 'Batman Begins' }),
+    } as Response)
+
+    const response = await getMovieByImdb('tt0372784')
+
+    expect(fetchSpy).toHaveBeenCalledWith('/api/movies/by-imdb/tt0372784', expect.any(Object))
+    expect(response.imdbID).toBe('tt0372784')
   })
 })

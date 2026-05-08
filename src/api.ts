@@ -3,6 +3,7 @@ import type {
   MediaItemListResponse,
   MediaItemPayload,
   MediaItemUpdatePayload,
+  MovieDetails,
   MovieSearchResponse,
 } from './types'
 
@@ -47,6 +48,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export async function searchMovies(title: string, page = 1): Promise<MovieSearchResponse> {
   const params = new URLSearchParams({ title, page: String(page) })
   return request<MovieSearchResponse>(`/movies/search?${params.toString()}`)
+}
+
+export async function getMovieByImdb(imdbId: string): Promise<MovieDetails> {
+  return request<MovieDetails>(`/movies/by-imdb/${encodeURIComponent(imdbId)}`)
 }
 
 export async function listMediaItems(params?: {

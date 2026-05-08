@@ -5,6 +5,7 @@ import {
   ApiError,
   createMediaItem,
   deleteMediaItem,
+  getMovieByImdb,
   listMediaItems,
   searchMovies,
   updateMediaItem,
@@ -25,9 +26,17 @@ const PAGE_SIZE_PRESETS = [10, 20, 50]
 
 interface MovieRouteState {
   movie?: MovieDetails
+  catalogItem?: MediaItem
+  fromCatalog?: boolean
+}
+
+function getRouteMovieId(item: MediaItem): string {
+  const match = item.file_path.match(/omdb:\/\/movie\/(tt\d+)/i)
+  return match?.[1] ?? `catalog-${item.id}`
 }
 
 function DashboardPage() {
+  const navigate = useNavigate()
   const [searchTitle, setSearchTitle] = useState('')
   const [activeSearchQuery, setActiveSearchQuery] = useState('')
   const [searchPage, setSearchPage] = useState(1)
@@ -130,6 +139,10 @@ function DashboardPage() {
       setItemsLoading(false)
     }
   }
+
+  useEffect(() => {
+    void refreshItems(1, itemsLimit)
+  }, [])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -549,7 +562,21 @@ function DashboardPage() {
               {items.map((item) => {
                 const isEditing = editingId === item.id
                 return (
-                  <tr key={item.id}>
+                  <tr
+                    key={item.id}
+                    className={!isEditing ? 'clickable-row' : undefined}
+                    onClick={() => {
+                      if (isEditing) {
+                        return
+                      }
+                      navigate(`/movies/${getRouteMovieId(item)}`, {
+                        state: {
+                          catalogItem: item,
+                          fromCatalog: true,
+                        } satisfies MovieRouteState,
+                      })
+                    }}
+                  >
                     <td>{item.id}</td>
                     <td>
                       {isEditing ? (
@@ -586,24 +613,42 @@ function DashboardPage() {
                         <>
                           <button
                             type="button"
-                            onClick={() => submitEdit(item.id)}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              void submitEdit(item.id)
+                            }}
                             disabled={updateLoading}
                           >
                             {updateLoading ? 'Saving...' : 'Save'}
                           </button>
-                          <button type="button" onClick={cancelEdit}>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              cancelEdit()
+                            }}
+                          >
                             Cancel
                           </button>
                         </>
                       ) : (
-                        <button type="button" onClick={() => startEdit(item)}>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            startEdit(item)
+                          }}
+                        >
                           Edit
                         </button>
                       )}
                       <button
                         type="button"
                         className="danger"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void handleDelete(item.id)
+                        }}
                         disabled={deletingId === item.id}
                       >
                         {deletingId === item.id ? 'Deleting...' : 'Delete'}
@@ -641,9 +686,75 @@ function MovieDetailsPage() {
   const location = useLocation()
   const state = location.state as MovieRouteState | null
   const movie = state?.movie
+  const catalogItem = state?.catalogItem
+  const fromCatalog = Boolean(state?.fromCatalog)
+  const [resolvedMovie, setResolvedMovie] = useState<MovieDetails | undefined>(movie)
+  const [resolvingCatalogMovie, setResolvingCatalogMovie] = useState(false)
+  const displayMovie = movie ?? resolvedMovie
+  const posterUrl = displayMovie?.Poster && displayMovie.Poster !== 'N/A' ? displayMovie.Poster : null
   const [addingMovie, setAddingMovie] = useState(false)
   const [addMovieMessage, setAddMovieMessage] = useState('')
   const [addMovieError, setAddMovieError] = useState('')
+
+  useEffect(() => {
+    setResolvedMovie(movie)
+  }, [movie])
+
+  useEffect(() => {
+    const catalogTitle = catalogItem?.title
+    if (movie || !catalogTitle) {
+      return
+    }
+    const resolvedCatalogTitle = catalogTitle
+
+    let cancelled = false
+    setResolvingCatalogMovie(true)
+
+    async function resolveCatalogMovie() {
+      if (imdbID && imdbID.startsWith('tt')) {
+        try {
+          const byIdMovie = await getMovieByImdb(imdbID)
+          if (!cancelled) {
+            setResolvedMovie(byIdMovie)
+          }
+          return
+        } catch {
+          // Fall back to title search when direct IMDb lookup fails.
+        }
+      }
+
+      const response = await searchMovies(resolvedCatalogTitle, 1)
+      if (cancelled) {
+        return
+      }
+
+      const imdbMatch =
+        imdbID && imdbID.startsWith('tt')
+          ? response.results.find((item) => item.imdbID === imdbID)
+          : undefined
+      const titleMatch = response.results.find(
+        (item) => item.Title.toLowerCase() === resolvedCatalogTitle.toLowerCase(),
+      )
+
+      setResolvedMovie(imdbMatch ?? titleMatch ?? response.results[0])
+    }
+
+    void resolveCatalogMovie()
+      .catch(() => {
+        if (!cancelled) {
+          setResolvedMovie(undefined)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setResolvingCatalogMovie(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [catalogItem?.title, imdbID, movie])
 
   async function handleAddMovieToDatabase() {
     if (!movie) {
@@ -677,7 +788,7 @@ function MovieDetailsPage() {
     <div className="app-shell">
       <header className="masthead">
         <p className="kicker">movie details</p>
-        <h1>{movie?.Title ?? 'Movie details unavailable'}</h1>
+        <h1>{displayMovie?.Title ?? catalogItem?.title ?? 'Movie details unavailable'}</h1>
         <p className="intro">IMDb ID: {imdbID}</p>
       </header>
 
@@ -685,12 +796,8 @@ function MovieDetailsPage() {
         <div className="panel-head">
           <h2>Details</h2>
           <div className="details-actions">
-            <button
-              type="button"
-              onClick={handleAddMovieToDatabase}
-              disabled={!movie || addingMovie}
-            >
-              {addingMovie ? 'Adding...' : 'Add Movie to Database'}
+            <button type="button" onClick={handleAddMovieToDatabase} disabled={!movie || fromCatalog || addingMovie}>
+              {fromCatalog ? 'Already in Catalog' : addingMovie ? 'Adding...' : 'Add Movie to Database'}
             </button>
             <button type="button" onClick={() => navigate(-1)}>
               Back to Search
@@ -701,47 +808,57 @@ function MovieDetailsPage() {
         {addMovieMessage && <p className="success-note">{addMovieMessage}</p>}
         {addMovieError && <p className="error">{addMovieError}</p>}
 
-        {!movie ? (
+        {!displayMovie && !catalogItem ? (
           <p className="error">
             No movie details in navigation state. Open a movie from the search page to view full data.
           </p>
         ) : (
           <div className="details-grid">
-            <img
-              className="details-poster"
-              src={movie.Poster !== 'N/A' ? movie.Poster : undefined}
-              alt={`${movie.Title} poster`}
-            />
+            {posterUrl ? (
+              <img
+                className="details-poster"
+                src={posterUrl}
+                alt={`${displayMovie?.Title ?? catalogItem?.title ?? 'Movie'} poster`}
+              />
+            ) : (
+              <div className="details-poster details-poster-fallback">
+                {resolvingCatalogMovie ? 'Loading poster...' : 'No poster available'}
+              </div>
+            )}
             <div className="details-list">
               <p>
-                <strong>Title:</strong> {movie.Title}
+                <strong>Title:</strong> {displayMovie?.Title ?? catalogItem?.title ?? 'Unknown'}
               </p>
               <p>
-                <strong>Year:</strong> {movie.Year}
+                <strong>Year:</strong> {displayMovie?.Year ?? 'Unknown'}
               </p>
               <p>
-                <strong>Rated:</strong> {movie.Rated}
+                <strong>Rated:</strong> {displayMovie?.Rated ?? 'Unknown'}
               </p>
               <p>
-                <strong>Released:</strong> {movie.Released}
+                <strong>Released:</strong> {displayMovie?.Released ?? 'Unknown'}
               </p>
               <p>
-                <strong>Runtime:</strong> {movie.Runtime}
+                <strong>Runtime:</strong> {displayMovie?.Runtime ?? 'Unknown'}
               </p>
               <p>
-                <strong>Genre:</strong> {movie.Genre}
+                <strong>Genre:</strong> {displayMovie?.Genre ?? catalogItem?.media_type ?? 'Unknown'}
               </p>
               <p>
-                <strong>Director:</strong> {movie.Director}
+                <strong>Director:</strong> {displayMovie?.Director ?? 'Unknown'}
               </p>
               <p>
-                <strong>Actors:</strong> {movie.Actors}
+                <strong>Actors:</strong> {displayMovie?.Actors ?? 'Unknown'}
               </p>
               <p>
-                <strong>IMDb Rating:</strong> {movie.imdbRating}
+                <strong>IMDb Rating:</strong> {displayMovie?.imdbRating ?? 'Unknown'}
               </p>
               <p>
-                <strong>Plot:</strong> {movie.Plot}
+                <strong>Catalog Path:</strong> {catalogItem?.file_path ?? 'n/a'}
+              </p>
+              <p>
+                <strong>Plot:</strong>{' '}
+                {displayMovie?.Plot ?? 'No OMDb plot available for this catalog row.'}
               </p>
             </div>
           </div>

@@ -8,6 +8,7 @@ vi.mock('./api', async () => {
   return {
     ...actual,
     searchMovies: vi.fn(),
+    getMovieByImdb: vi.fn(),
     listMediaItems: vi.fn(),
     createMediaItem: vi.fn(),
     updateMediaItem: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('./api', async () => {
 })
 
 const mockedSearchMovies = vi.mocked(api.searchMovies)
+const mockedGetMovieByImdb = vi.mocked(api.getMovieByImdb)
 const mockedListMediaItems = vi.mocked(api.listMediaItems)
 const mockedCreateMediaItem = vi.mocked(api.createMediaItem)
 const mockedUpdateMediaItem = vi.mocked(api.updateMediaItem)
@@ -59,6 +61,21 @@ describe('App', () => {
     mockedListMediaItems.mockResolvedValue({
       count: 1,
       results: [baseItem],
+    })
+
+    mockedGetMovieByImdb.mockResolvedValue({
+      Title: 'Batman Begins',
+      Year: '2005',
+      Rated: 'PG-13',
+      Released: '15 Jun 2005',
+      Runtime: '140 min',
+      Genre: 'Action',
+      Director: 'Christopher Nolan',
+      Actors: 'Christian Bale',
+      Plot: 'After training with his mentor...',
+      Poster: 'N/A',
+      imdbRating: '8.2',
+      imdbID: 'tt0372784',
     })
 
     mockedCreateMediaItem.mockResolvedValue({
@@ -106,7 +123,6 @@ describe('App', () => {
 
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Items' }))
     await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
 
     fireEvent.change(screen.getByPlaceholderText('Title'), { target: { value: 'New Item' } })
@@ -128,7 +144,6 @@ describe('App', () => {
 
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Items' }))
     await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
@@ -149,7 +164,6 @@ describe('App', () => {
 
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Items' }))
     await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
@@ -159,5 +173,18 @@ describe('App', () => {
     })
 
     expect(screen.getAllByText('Could not delete media item.').length).toBeGreaterThan(0)
+  })
+
+  it('opens details from catalog row with add button disabled', async () => {
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('Original Title'))
+
+    await waitFor(() => {
+      expect(screen.getByText('IMDb ID: catalog-1')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Already in Catalog' })).toBeDisabled()
+    })
   })
 })

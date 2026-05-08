@@ -230,6 +230,14 @@ th {
   letter-spacing: 0.06em;
 }
 
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: #f0f8f5;
+}
+
 .path {
   font-family: 'IBM Plex Mono', 'Fira Code', monospace;
   font-size: 0.9rem;
@@ -294,6 +302,14 @@ th {
   border-radius: 0.75rem;
   border: 1px solid var(--border);
   background: #dfe9ec;
+}
+
+.details-poster-fallback {
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 .details-list {
