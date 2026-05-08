@@ -690,6 +690,8 @@ function MovieDetailsPage() {
   const fromCatalog = Boolean(state?.fromCatalog)
   const [resolvedMovie, setResolvedMovie] = useState<MovieDetails | undefined>(movie)
   const [resolvingCatalogMovie, setResolvingCatalogMovie] = useState(false)
+  const [checkingCatalogMembership, setCheckingCatalogMembership] = useState(false)
+  const [alreadyInCatalog, setAlreadyInCatalog] = useState(fromCatalog)
   const displayMovie = movie ?? resolvedMovie
   const posterUrl = displayMovie?.Poster && displayMovie.Poster !== 'N/A' ? displayMovie.Poster : null
   const [addingMovie, setAddingMovie] = useState(false)
@@ -699,6 +701,70 @@ function MovieDetailsPage() {
   useEffect(() => {
     setResolvedMovie(movie)
   }, [movie])
+
+  useEffect(() => {
+    setAlreadyInCatalog(fromCatalog)
+  }, [fromCatalog])
+
+  useEffect(() => {
+    const movieImdbId = movie?.imdbID
+    const movieTitle = movie?.Title
+    if (!movieImdbId || !movieTitle || fromCatalog) {
+      return
+    }
+
+    let cancelled = false
+    setCheckingCatalogMembership(true)
+
+    async function checkCatalogMembership() {
+      const pageSize = 100
+      let offset = 0
+
+      while (true) {
+        const response = await listMediaItems({
+          limit: pageSize,
+          offset,
+          mediaType: 'movie',
+        })
+
+        const found = response.results.some(
+          (item) => item.file_path === `omdb://movie/${movieImdbId}` || item.title === movieTitle,
+        )
+
+        if (found) {
+          if (!cancelled) {
+            setAlreadyInCatalog(true)
+          }
+          return
+        }
+
+        if (response.results.length < pageSize) {
+          if (!cancelled) {
+            setAlreadyInCatalog(false)
+          }
+          return
+        }
+
+        offset += pageSize
+      }
+    }
+
+    void checkCatalogMembership()
+      .catch(() => {
+        if (!cancelled) {
+          setAlreadyInCatalog(false)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCheckingCatalogMembership(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [fromCatalog, movie?.Title, movie?.imdbID])
 
   useEffect(() => {
     const catalogTitle = catalogItem?.title
@@ -772,6 +838,7 @@ function MovieDetailsPage() {
         file_path: `omdb://movie/${movie.imdbID}`,
         media_type: 'movie',
       })
+      setAlreadyInCatalog(true)
       setAddMovieMessage('Movie added to catalog database.')
     } catch (error) {
       if (error instanceof ApiError) {
@@ -796,8 +863,18 @@ function MovieDetailsPage() {
         <div className="panel-head">
           <h2>Details</h2>
           <div className="details-actions">
-            <button type="button" onClick={handleAddMovieToDatabase} disabled={!movie || fromCatalog || addingMovie}>
-              {fromCatalog ? 'Already in Catalog' : addingMovie ? 'Adding...' : 'Add Movie to Database'}
+            <button
+              type="button"
+              onClick={handleAddMovieToDatabase}
+              disabled={!movie || fromCatalog || alreadyInCatalog || addingMovie || checkingCatalogMembership}
+            >
+              {fromCatalog || alreadyInCatalog
+                ? 'Already in Catalog'
+                : checkingCatalogMembership
+                  ? 'Checking Catalog...'
+                  : addingMovie
+                    ? 'Adding...'
+                    : 'Add Movie to Database'}
             </button>
             <button type="button" onClick={() => navigate(-1)}>
               Back to Search

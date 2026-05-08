@@ -98,7 +98,7 @@ describe('App', () => {
       expect(screen.getByText('Batman Begins')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Batman Begins'))
+    fireEvent.click(screen.getByRole('heading', { name: 'Batman Begins', level: 3 }))
 
     await waitFor(() => {
       expect(screen.getByText('movie details')).toBeInTheDocument()
@@ -184,6 +184,37 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('IMDb ID: catalog-1')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Already in Catalog' })).toBeDisabled()
+    })
+  })
+
+  it('disables add button when searched movie is already in catalog', async () => {
+    mockedListMediaItems.mockResolvedValue({
+      count: 1,
+      results: [
+        {
+          id: 2,
+          title: 'Batman Begins',
+          file_path: 'omdb://movie/tt0372784',
+          media_type: 'movie',
+          created_at: '2026-05-08T00:00:00.000Z',
+          updated_at: '2026-05-08T00:00:00.000Z',
+        },
+      ],
+    })
+
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Batman' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Batman Begins', level: 3 })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('heading', { name: 'Batman Begins', level: 3 }))
+
+    await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Already in Catalog' })).toBeDisabled()
     })
   })
