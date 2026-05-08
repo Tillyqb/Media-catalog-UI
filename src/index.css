@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --ink: #11242c;
+  --ink-soft: #4d6770;
+  --bg: #ecf2ee;
+  --panel: #f8fbf8;
+  --border: #d6e4df;
+  --border-strong: #c2d4ce;
+  --brand: #136f63;
+  --brand-2: #115ca8;
+
+  font-family: 'Chivo', 'Segoe UI', sans-serif;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--ink);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% -6%, rgba(17, 92, 168, 0.2) 0%, transparent 31%),
+    radial-gradient(circle at 83% 8%, rgba(19, 111, 99, 0.26) 0%, transparent 28%),
+    linear-gradient(140deg, #ebf6ef 0%, #ecf2ee 52%, #e8f1f8 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+h1 {
+  margin-top: 0.45rem;
+  margin-bottom: 0.6rem;
+  font-size: clamp(1.9rem, 5vw, 3rem);
+  line-height: 1.05;
+}
+
+h2 {
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+}
+
+p {
+  margin: 0;
+}

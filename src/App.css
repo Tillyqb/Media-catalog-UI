@@ -1,0 +1,287 @@
+.app-shell {
+  width: min(1180px, 96vw);
+  margin: 2.2rem auto 3.2rem;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.masthead {
+  padding: 2rem 2.4rem;
+  border-radius: 1.2rem;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(120deg, var(--panel) 0%, #f3fff8 52%, #eef5ff 100%);
+  box-shadow: 0 20px 60px rgba(17, 28, 35, 0.08);
+  animation: rise-in 460ms ease-out both;
+}
+
+.kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.intro {
+  max-width: 70ch;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--panel);
+  padding: 1.2rem;
+  box-shadow: 0 10px 40px rgba(25, 43, 54, 0.08);
+  animation: rise-in 460ms ease-out both;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.inline-form,
+.toolbar,
+.create-form {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.inline-form {
+  grid-template-columns: 80px minmax(180px, 1fr) 140px;
+}
+
+.toolbar {
+  grid-template-columns: 170px minmax(180px, 1fr) 140px 70px 120px;
+}
+
+.create-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.create-form h3 {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 0;
+}
+
+input,
+button {
+  min-height: 2.4rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-strong);
+  font: inherit;
+}
+
+input {
+  padding: 0 0.7rem;
+  background: #ffffff;
+}
+
+button {
+  padding: 0 0.9rem;
+  background: var(--brand);
+  color: #f6f9fb;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.08);
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+button.danger {
+  background: #9f2f24;
+}
+
+button.secondary {
+  background: #2f5c75;
+}
+
+button.secondary.active {
+  background: #1d7a5f;
+}
+
+.error {
+  margin: 0.8rem 0;
+  color: #9f2f24;
+  font-weight: 600;
+}
+
+.pager {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pager p {
+  margin: 0;
+  color: var(--ink-soft);
+  min-width: 4.5rem;
+}
+
+.pager input {
+  width: 90px;
+}
+
+.limit-presets {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.shortcuts {
+  margin-top: 0.8rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.empty {
+  color: var(--ink-soft);
+}
+
+.card-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.8rem;
+}
+
+.movie-card {
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  overflow: hidden;
+  background: #fcfdfd;
+}
+
+.movie-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #dfe9ec;
+}
+
+.movie-card div {
+  padding: 0.7rem;
+}
+
+.movie-card h3 {
+  margin: 0;
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.table-wrap {
+  margin-top: 0.9rem;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.path {
+  font-family: 'IBM Plex Mono', 'Fira Code', monospace;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 1rem;
+}
+
+.toast-stack {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+  z-index: 50;
+}
+
+.toast {
+  min-width: 220px;
+  max-width: 360px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.6rem;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(16, 39, 55, 0.28);
+}
+
+.toast.success {
+  background: #0f7f64;
+}
+
+.toast.error {
+  background: #9f2f24;
+}
+
+.toast.info {
+  background: #115ca8;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    width: min(1180px, 98vw);
+    margin: 1rem auto 2rem;
+  }
+
+  .masthead,
+  .panel {
+    padding: 1rem;
+  }
+
+  .inline-form,
+  .toolbar,
+  .create-form {
+    grid-template-columns: 1fr;
+  }
+}
