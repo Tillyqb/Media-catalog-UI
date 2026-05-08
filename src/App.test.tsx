@@ -33,6 +33,7 @@ const baseItem = {
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    window.location.hash = '#/'
 
     mockedSearchMovies.mockResolvedValue({
       query: 'batman',
@@ -59,6 +60,15 @@ describe('App', () => {
       count: 1,
       results: [baseItem],
     })
+
+    mockedCreateMediaItem.mockResolvedValue({
+      id: 2,
+      title: 'Batman Begins',
+      file_path: 'omdb://movie/tt0372784',
+      media_type: 'movie',
+      created_at: '2026-05-08T00:00:00.000Z',
+      updated_at: '2026-05-08T00:00:00.000Z',
+    })
   })
 
   it('renders and searches movies', async () => {
@@ -69,6 +79,25 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Batman Begins')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Batman Begins'))
+
+    await waitFor(() => {
+      expect(screen.getByText('movie details')).toBeInTheDocument()
+      expect(screen.getByText('Details')).toBeInTheDocument()
+      expect(screen.getByText('IMDb ID: tt0372784')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Movie to Database' }))
+
+    await waitFor(() => {
+      expect(mockedCreateMediaItem).toHaveBeenCalledWith({
+        title: 'Batman Begins',
+        file_path: 'omdb://movie/tt0372784',
+        media_type: 'movie',
+      })
+      expect(screen.getByText('Movie added to catalog database.')).toBeInTheDocument()
     })
   })
 

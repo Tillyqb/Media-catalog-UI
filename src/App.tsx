@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   ApiError,
   createMediaItem,
@@ -22,7 +23,11 @@ interface Toast {
 const DEFAULT_ITEMS_LIMIT = 20
 const PAGE_SIZE_PRESETS = [10, 20, 50]
 
-function App() {
+interface MovieRouteState {
+  movie?: MovieDetails
+}
+
+function DashboardPage() {
   const [searchTitle, setSearchTitle] = useState('')
   const [activeSearchQuery, setActiveSearchQuery] = useState('')
   const [searchPage, setSearchPage] = useState(1)
@@ -336,7 +341,7 @@ function App() {
             ref={searchInputRef}
             value={searchTitle}
             onChange={(event) => setSearchTitle(event.target.value)}
-            placeholder="Batman"
+            placeholder="Dune"
           />
           <button type="submit" disabled={searchLoading}>
             {searchLoading ? 'Searching...' : 'Search'}
@@ -385,21 +390,28 @@ function App() {
 
         <div className="card-grid">
           {searchResults.map((movie) => (
-            <article key={movie.imdbID} className="movie-card">
-              <img
-                src={movie.Poster !== 'N/A' ? movie.Poster : undefined}
-                alt={`${movie.Title} poster`}
-                loading="lazy"
-              />
-              <div>
-                <h3>{movie.Title}</h3>
-                <p>
-                  {movie.Year} • {movie.Runtime} • {movie.imdbRating}
-                </p>
-                <p>{movie.Genre}</p>
-                <p className="muted">{movie.Plot}</p>
-              </div>
-            </article>
+            <Link
+              key={movie.imdbID}
+              to={`/movies/${movie.imdbID}`}
+              state={{ movie }}
+              className="movie-link"
+            >
+              <article className="movie-card">
+                <img
+                  src={movie.Poster !== 'N/A' ? movie.Poster : undefined}
+                  alt={`${movie.Title} poster`}
+                  loading="lazy"
+                />
+                <div>
+                  <h3>{movie.Title}</h3>
+                  <p>
+                    {movie.Year} • {movie.Runtime} • {movie.imdbRating}
+                  </p>
+                  <p>{movie.Genre}</p>
+                  <p className="muted">{movie.Plot}</p>
+                </div>
+              </article>
+            </Link>
           ))}
           {!searchLoading && searchResults.length === 0 && (
             <p className="empty">No movie results yet. Run a search above.</p>
@@ -620,6 +632,134 @@ function App() {
         ))}
       </div>
     </div>
+  )
+}
+
+function MovieDetailsPage() {
+  const navigate = useNavigate()
+  const { imdbID } = useParams<{ imdbID: string }>()
+  const location = useLocation()
+  const state = location.state as MovieRouteState | null
+  const movie = state?.movie
+  const [addingMovie, setAddingMovie] = useState(false)
+  const [addMovieMessage, setAddMovieMessage] = useState('')
+  const [addMovieError, setAddMovieError] = useState('')
+
+  async function handleAddMovieToDatabase() {
+    if (!movie) {
+      setAddMovieError('Movie details are unavailable for this route.')
+      return
+    }
+
+    setAddMovieError('')
+    setAddMovieMessage('')
+    setAddingMovie(true)
+
+    try {
+      await createMediaItem({
+        title: movie.Title,
+        file_path: `omdb://movie/${movie.imdbID}`,
+        media_type: 'movie',
+      })
+      setAddMovieMessage('Movie added to catalog database.')
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setAddMovieError(error.message)
+      } else {
+        setAddMovieError('Could not add movie to database.')
+      }
+    } finally {
+      setAddingMovie(false)
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="masthead">
+        <p className="kicker">movie details</p>
+        <h1>{movie?.Title ?? 'Movie details unavailable'}</h1>
+        <p className="intro">IMDb ID: {imdbID}</p>
+      </header>
+
+      <section className="panel details-page">
+        <div className="panel-head">
+          <h2>Details</h2>
+          <div className="details-actions">
+            <button
+              type="button"
+              onClick={handleAddMovieToDatabase}
+              disabled={!movie || addingMovie}
+            >
+              {addingMovie ? 'Adding...' : 'Add Movie to Database'}
+            </button>
+            <button type="button" onClick={() => navigate(-1)}>
+              Back to Search
+            </button>
+          </div>
+        </div>
+
+        {addMovieMessage && <p className="success-note">{addMovieMessage}</p>}
+        {addMovieError && <p className="error">{addMovieError}</p>}
+
+        {!movie ? (
+          <p className="error">
+            No movie details in navigation state. Open a movie from the search page to view full data.
+          </p>
+        ) : (
+          <div className="details-grid">
+            <img
+              className="details-poster"
+              src={movie.Poster !== 'N/A' ? movie.Poster : undefined}
+              alt={`${movie.Title} poster`}
+            />
+            <div className="details-list">
+              <p>
+                <strong>Title:</strong> {movie.Title}
+              </p>
+              <p>
+                <strong>Year:</strong> {movie.Year}
+              </p>
+              <p>
+                <strong>Rated:</strong> {movie.Rated}
+              </p>
+              <p>
+                <strong>Released:</strong> {movie.Released}
+              </p>
+              <p>
+                <strong>Runtime:</strong> {movie.Runtime}
+              </p>
+              <p>
+                <strong>Genre:</strong> {movie.Genre}
+              </p>
+              <p>
+                <strong>Director:</strong> {movie.Director}
+              </p>
+              <p>
+                <strong>Actors:</strong> {movie.Actors}
+              </p>
+              <p>
+                <strong>IMDb Rating:</strong> {movie.imdbRating}
+              </p>
+              <p>
+                <strong>Plot:</strong> {movie.Plot}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/movies/:imdbID" element={<MovieDetailsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </HashRouter>
   )
 }
 

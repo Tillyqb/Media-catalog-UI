@@ -119,6 +119,12 @@ button.secondary.active {
   font-weight: 600;
 }
 
+.success-note {
+  margin: 0.8rem 0;
+  color: #0f7f64;
+  font-weight: 600;
+}
+
 .pager {
   margin-top: 0.75rem;
   display: flex;
@@ -160,11 +166,24 @@ button.secondary.active {
   gap: 0.8rem;
 }
 
+.movie-link {
+  text-decoration: none;
+  color: inherit;
+}
+
 .movie-card {
   border: 1px solid var(--border);
   border-radius: 0.85rem;
   overflow: hidden;
   background: #fcfdfd;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.movie-link:hover .movie-card,
+.movie-link:focus-visible .movie-card {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(19, 111, 99, 0.18);
+  border-color: #9bc6bb;
 }
 
 .movie-card img {
@@ -257,6 +276,41 @@ th {
   background: #115ca8;
 }
 
+.details-page {
+  padding-top: 1rem;
+}
+
+.details-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.details-poster {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: #dfe9ec;
+}
+
+.details-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.details-list p {
+  margin: 0;
+}
+
+.details-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -282,6 +336,10 @@ th {
   .inline-form,
   .toolbar,
   .create-form {
+    grid-template-columns: 1fr;
+  }
+
+  .details-grid {
     grid-template-columns: 1fr;
   }
 }
