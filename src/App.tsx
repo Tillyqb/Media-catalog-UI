@@ -36,6 +36,7 @@ interface Toast {
 
 const DEFAULT_ITEMS_LIMIT = 20
 const PAGE_SIZE_PRESETS = [10, 20, 50]
+const ALL_ITEMS_PAGE_SIZE = 100
 
 interface MovieRouteState {
   movie?: MovieDetails
@@ -67,6 +68,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [itemsPage, setItemsPage] = useState(1)
   const [itemsPageJump, setItemsPageJump] = useState('1')
   const [itemsLimit, setItemsLimit] = useState(DEFAULT_ITEMS_LIMIT)
+  const [showAllItems, setShowAllItems] = useState(false)
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
@@ -143,6 +145,44 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
       setItems(response.results)
       setItemsPage(page)
       setItemsPageJump(String(page))
+      setShowAllItems(false)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setItemsError(error.message)
+      } else {
+        setItemsError('Could not load media items. Check backend connection.')
+      }
+    } finally {
+      setItemsLoading(false)
+    }
+  }
+
+  async function refreshAllItems() {
+    setItemsError('')
+    setItemsLoading(true)
+    try {
+      let offset = 0
+      const allItems: MediaItem[] = []
+
+      while (true) {
+        const response = await listMediaItems({
+          limit: ALL_ITEMS_PAGE_SIZE,
+          offset,
+          mediaType: activeFilter,
+        })
+        allItems.push(...response.results)
+
+        if (response.results.length < ALL_ITEMS_PAGE_SIZE || allItems.length >= response.count) {
+          break
+        }
+
+        offset += ALL_ITEMS_PAGE_SIZE
+      }
+
+      setItems(allItems)
+      setItemsPage(1)
+      setItemsPageJump('1')
+      setShowAllItems(true)
     } catch (error) {
       if (error instanceof ApiError) {
         setItemsError(error.message)
@@ -245,7 +285,13 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         void refreshItems(itemsPage - 1)
       }
 
-      if (event.altKey && event.key === 'ArrowRight' && !itemsLoading && items.length >= itemsLimit) {
+      if (
+        event.altKey &&
+        event.key === 'ArrowRight' &&
+        !itemsLoading &&
+        !showAllItems &&
+        items.length >= itemsLimit
+      ) {
         event.preventDefault()
         void refreshItems(itemsPage + 1)
       }
@@ -255,7 +301,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
     return () => {
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [items.length, itemsLimit, itemsLoading, itemsPage])
+  }, [items.length, itemsLimit, itemsLoading, itemsPage, showAllItems])
 
   function startEdit(item: MediaItem) {
     setEditingId(item.id)
@@ -369,7 +415,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         </p>
       </header>
 
-      <section className="panel catalog-panel">
+      <section className="panel">
         <div className="panel-head">
           <h2>Movie Search</h2>
           <p>Endpoint: GET /movies/search</p>
@@ -510,6 +556,15 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
               {preset}/page
             </button>
           ))}
+          <button
+            type="button"
+            className={showAllItems ? 'secondary active' : 'secondary'}
+            onClick={() => {
+              void refreshAllItems()
+            }}
+          >
+            All
+          </button>
         </div>
 
         <div className="pager">
@@ -524,7 +579,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
           <button
             type="button"
             onClick={() => refreshItems(itemsPage + 1)}
-            disabled={itemsLoading || items.length < itemsLimit}
+            disabled={itemsLoading || showAllItems || items.length < itemsLimit}
           >
             Next
           </button>
