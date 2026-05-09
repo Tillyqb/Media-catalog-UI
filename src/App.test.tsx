@@ -304,6 +304,9 @@ describe('App', () => {
       expect(screen.getByText('Alpha 1999')).toBeInTheDocument()
     })
 
+    expect(screen.getByRole('columnheader', { name: 'Genre' })).toBeInTheDocument()
+    expect(screen.getAllByText('-').length).toBeGreaterThan(0)
+
     const titleSortButton = screen.getByRole('button', { name: 'Sort by title' })
     fireEvent.click(titleSortButton)
 

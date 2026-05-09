@@ -58,6 +58,14 @@ function getCatalogReleaseYear(item: MediaItem, resolvedYear?: string): string {
   return extractYear(item.title) ?? extractYear(item.file_path) ?? '-'
 }
 
+function getCatalogGenre(resolvedGenre?: string): string {
+  if (!resolvedGenre) {
+    return '-'
+  }
+
+  return resolvedGenre
+}
+
 function getRouteMovieId(item: MediaItem): string {
   const imdbId = getImdbIdFromFilePath(item.file_path)
   return imdbId ?? `catalog-${item.id}`
@@ -91,6 +99,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [deleteCandidate, setDeleteCandidate] = useState<MediaItem | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [catalogYears, setCatalogYears] = useState<Record<number, string>>({})
+  const [catalogGenres, setCatalogGenres] = useState<Record<number, string>>({})
   const [catalogSortKey, setCatalogSortKey] = useState<CatalogSortKey>('id')
   const [catalogSortDirection, setCatalogSortDirection] = useState<SortDirection>('asc')
 
@@ -173,7 +182,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   useEffect(() => {
     const pendingItems = items.filter((item) => {
       const imdbId = getImdbIdFromFilePath(item.file_path)
-      return Boolean(imdbId) && catalogYears[item.id] === undefined
+      return Boolean(imdbId) && (catalogYears[item.id] === undefined || catalogGenres[item.id] === undefined)
     })
 
     if (pendingItems.length === 0) {
@@ -187,14 +196,14 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         pendingItems.map(async (item) => {
           const imdbId = getImdbIdFromFilePath(item.file_path)
           if (!imdbId) {
-            return [item.id, getCatalogReleaseYear(item)] as const
+            return [item.id, getCatalogReleaseYear(item), getCatalogGenre()] as const
           }
 
           try {
             const movie = await getMovieByImdb(imdbId)
-            return [item.id, extractYear(movie.Year) ?? getCatalogReleaseYear(item)] as const
+            return [item.id, extractYear(movie.Year) ?? getCatalogReleaseYear(item), getCatalogGenre(movie.Genre)] as const
           } catch {
-            return [item.id, getCatalogReleaseYear(item)] as const
+            return [item.id, getCatalogReleaseYear(item), getCatalogGenre()] as const
           }
         }),
       )
@@ -210,6 +219,14 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         })
         return next
       })
+
+      setCatalogGenres((current) => {
+        const next = { ...current }
+        entries.forEach(([itemId, _year, genre]) => {
+          next[itemId] = genre
+        })
+        return next
+      })
     }
 
     void resolveCatalogYears()
@@ -217,7 +234,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
     return () => {
       cancelled = true
     }
-  }, [catalogYears, items])
+  }, [catalogGenres, catalogYears, items])
 
   const sortedItems = useMemo(() => {
     const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
@@ -648,6 +665,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                     YEAR <span aria-hidden="true">{getSortIndicator('year')}</span>
                   </button>
                 </th>
+                <th>Genre</th>
                 <th>
                   <button
                     type="button"
@@ -694,6 +712,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                     <td>
                       {getCatalogReleaseYear(item, catalogYears[item.id])}
                     </td>
+                    <td>{getCatalogGenre(catalogGenres[item.id])}</td>
                     <td>
                       {isEditing ? (
                         <input
@@ -755,7 +774,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
               })}
               {!itemsLoading && items.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="empty-cell">
+                  <td colSpan={6} className="empty-cell">
                     No stored media items loaded.
                   </td>
                 </tr>
