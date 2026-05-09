@@ -243,6 +243,27 @@ th {
   letter-spacing: 0.06em;
 }
 
+.sort-button {
+  min-height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sort-button:hover {
+  filter: none;
+  color: var(--ink);
+}
+
 .clickable-row {
   cursor: pointer;
 }

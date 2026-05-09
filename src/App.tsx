@@ -37,6 +37,9 @@ interface ThemeControls {
   onToggleTheme: () => void
 }
 
+type CatalogSortKey = 'id' | 'title' | 'year' | 'type'
+type SortDirection = 'asc' | 'desc'
+
 function getImdbIdFromFilePath(filePath: string): string | null {
   const match = filePath.match(/omdb:\/\/movie\/(tt\d+)/i)
   return match?.[1] ?? null
@@ -93,6 +96,8 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [deleteCandidate, setDeleteCandidate] = useState<MediaItem | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [catalogYears, setCatalogYears] = useState<Record<number, string>>({})
+  const [catalogSortKey, setCatalogSortKey] = useState<CatalogSortKey>('id')
+  const [catalogSortDirection, setCatalogSortDirection] = useState<SortDirection>('asc')
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const createFormRef = useRef<HTMLFormElement | null>(null)
@@ -219,6 +224,62 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
       cancelled = true
     }
   }, [catalogYears, items])
+
+  const sortedItems = useMemo(() => {
+    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
+    const directionFactor = catalogSortDirection === 'asc' ? 1 : -1
+
+    return [...items].sort((a, b) => {
+      if (catalogSortKey === 'id') {
+        return (a.id - b.id) * directionFactor
+      }
+
+      if (catalogSortKey === 'title') {
+        return collator.compare(a.title, b.title) * directionFactor
+      }
+
+      if (catalogSortKey === 'type') {
+        return collator.compare(a.media_type ?? '', b.media_type ?? '') * directionFactor
+      }
+
+      const aYear = Number.parseInt(getCatalogReleaseYear(a, catalogYears[a.id]), 10)
+      const bYear = Number.parseInt(getCatalogReleaseYear(b, catalogYears[b.id]), 10)
+      const aHasYear = Number.isFinite(aYear)
+      const bHasYear = Number.isFinite(bYear)
+
+      if (!aHasYear && !bHasYear) {
+        return 0
+      }
+
+      if (!aHasYear) {
+        return 1
+      }
+
+      if (!bHasYear) {
+        return -1
+      }
+
+      return (aYear - bYear) * directionFactor
+    })
+  }, [catalogSortDirection, catalogSortKey, catalogYears, items])
+
+  function toggleCatalogSort(nextSortKey: CatalogSortKey) {
+    if (catalogSortKey === nextSortKey) {
+      setCatalogSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setCatalogSortKey(nextSortKey)
+    setCatalogSortDirection('asc')
+  }
+
+  function getSortIndicator(sortKey: CatalogSortKey): string {
+    if (catalogSortKey !== sortKey) {
+      return '↕'
+    }
+
+    return catalogSortDirection === 'asc' ? '↑' : '↓'
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -642,15 +703,51 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>YEAR</th>
-                <th>Type</th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-button"
+                    aria-label="Sort by id"
+                    onClick={() => toggleCatalogSort('id')}
+                  >
+                    ID <span aria-hidden="true">{getSortIndicator('id')}</span>
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-button"
+                    aria-label="Sort by title"
+                    onClick={() => toggleCatalogSort('title')}
+                  >
+                    Title <span aria-hidden="true">{getSortIndicator('title')}</span>
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-button"
+                    aria-label="Sort by year"
+                    onClick={() => toggleCatalogSort('year')}
+                  >
+                    YEAR <span aria-hidden="true">{getSortIndicator('year')}</span>
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="sort-button"
+                    aria-label="Sort by type"
+                    onClick={() => toggleCatalogSort('type')}
+                  >
+                    Type <span aria-hidden="true">{getSortIndicator('type')}</span>
+                  </button>
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => {
+              {sortedItems.map((item) => {
                 const isEditing = editingId === item.id
                 return (
                   <tr

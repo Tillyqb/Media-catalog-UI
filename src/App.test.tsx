@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import * as api from './api'
@@ -293,5 +293,53 @@ describe('App', () => {
 
     expect(document.documentElement).toHaveAttribute('data-theme', 'light')
     expect(screen.getByRole('button', { name: 'Dark Mode' })).toBeInTheDocument()
+  })
+
+  it('sorts catalog columns when clicking table headers', async () => {
+    mockedListMediaItems.mockResolvedValueOnce({
+      count: 2,
+      results: [
+        {
+          id: 3,
+          title: 'Zeta 2005',
+          file_path: '/mnt/media/zeta.mp4',
+          media_type: 'movie',
+          created_at: '2026-05-08T00:00:00.000Z',
+          updated_at: '2026-05-08T00:00:00.000Z',
+        },
+        {
+          id: 1,
+          title: 'Alpha 1999',
+          file_path: '/mnt/media/alpha.mp4',
+          media_type: 'movie',
+          created_at: '2026-05-08T00:00:00.000Z',
+          updated_at: '2026-05-08T00:00:00.000Z',
+        },
+      ],
+    })
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Zeta 2005')).toBeInTheDocument()
+      expect(screen.getByText('Alpha 1999')).toBeInTheDocument()
+    })
+
+    const titleSortButton = screen.getByRole('button', { name: 'Sort by title' })
+    fireEvent.click(titleSortButton)
+
+    const dataRowsAfterTitleSort = screen.getAllByRole('row').slice(1)
+    expect(within(dataRowsAfterTitleSort[0]).getByText('Alpha 1999')).toBeInTheDocument()
+
+    const yearSortButton = screen.getByRole('button', { name: 'Sort by year' })
+    fireEvent.click(yearSortButton)
+
+    const dataRowsAfterYearAsc = screen.getAllByRole('row').slice(1)
+    expect(within(dataRowsAfterYearAsc[0]).getByText('1999')).toBeInTheDocument()
+
+    fireEvent.click(yearSortButton)
+
+    const dataRowsAfterYearDesc = screen.getAllByRole('row').slice(1)
+    expect(within(dataRowsAfterYearDesc[0]).getByText('2005')).toBeInTheDocument()
   })
 })
