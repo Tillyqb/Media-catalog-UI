@@ -119,27 +119,6 @@ describe('App', () => {
     })
   })
 
-  it('rolls back optimistic create when API fails', async () => {
-    mockedCreateMediaItem.mockRejectedValueOnce(new Error('create failed'))
-
-    render(<App />)
-
-    await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
-
-    fireEvent.change(screen.getByPlaceholderText('Title'), { target: { value: 'New Item' } })
-    fireEvent.change(screen.getByPlaceholderText('/mnt/media/movies/example.mp4'), {
-      target: { value: '/tmp/new.mp4' },
-    })
-    fireEvent.change(screen.getByPlaceholderText('movie'), { target: { value: 'movie' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
-
-    await waitFor(() => {
-      expect(screen.queryByText('New Item')).not.toBeInTheDocument()
-    })
-
-    expect(screen.getAllByText('Could not create media item.').length).toBeGreaterThan(0)
-  })
-
   it('rolls back optimistic update when API fails', async () => {
     mockedUpdateMediaItem.mockRejectedValueOnce(new Error('update failed'))
 

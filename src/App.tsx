@@ -81,11 +81,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [itemsPageJump, setItemsPageJump] = useState('1')
   const [itemsLimit, setItemsLimit] = useState(DEFAULT_ITEMS_LIMIT)
 
-  const [newTitle, setNewTitle] = useState('')
-  const [newPath, setNewPath] = useState('')
-  const [newType, setNewType] = useState('')
-  const [createLoading, setCreateLoading] = useState(false)
-
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editPath, setEditPath] = useState('')
@@ -100,7 +95,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [catalogSortDirection, setCatalogSortDirection] = useState<SortDirection>('asc')
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
-  const createFormRef = useRef<HTMLFormElement | null>(null)
 
   const activeFilter = useMemo(() => filterMediaType.trim(), [filterMediaType])
 
@@ -293,12 +287,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         return
       }
 
-      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        event.preventDefault()
-        createFormRef.current?.requestSubmit()
-        return
-      }
-
       if (isTypingTarget) {
         return
       }
@@ -319,57 +307,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [items.length, itemsLimit, itemsLoading, itemsPage])
-
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const title = newTitle.trim()
-    const filePath = newPath.trim()
-    const mediaType = newType.trim()
-
-    if (!title || !filePath) {
-      setItemsError('Title and file path are required for new items.')
-      return
-    }
-
-    setItemsError('')
-    setCreateLoading(true)
-
-    const tempItem: MediaItem = {
-      id: -Date.now(),
-      title,
-      file_path: filePath,
-      media_type: mediaType || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
-    setItems((current) => [tempItem, ...current])
-
-    try {
-      const created = await createMediaItem({
-        title,
-        file_path: filePath,
-        media_type: mediaType || undefined,
-      })
-
-      setItems((current) => current.map((item) => (item.id === tempItem.id ? created : item)))
-      setNewTitle('')
-      setNewPath('')
-      setNewType('')
-      pushToast('Media item created.', 'success')
-    } catch (error) {
-      setItems((current) => current.filter((item) => item.id !== tempItem.id))
-      if (error instanceof ApiError) {
-        setItemsError(error.message)
-        pushToast(error.message, 'error')
-      } else {
-        setItemsError('Could not create media item.')
-        pushToast('Could not create media item.', 'error')
-      }
-    } finally {
-      setCreateLoading(false)
-    }
-  }
 
   function startEdit(item: MediaItem) {
     setEditingId(item.id)
@@ -673,29 +610,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
           </button>
         </div>
 
-        <p className="shortcuts">Shortcuts: Ctrl/Cmd+K focus search, Ctrl/Cmd+Enter create item, Alt+Left/Right page catalog.</p>
-
-        <form className="create-form" onSubmit={handleCreate} ref={createFormRef}>
-          <h3>Create Item</h3>
-          <input
-            value={newTitle}
-            onChange={(event) => setNewTitle(event.target.value)}
-            placeholder="Title"
-          />
-          <input
-            value={newPath}
-            onChange={(event) => setNewPath(event.target.value)}
-            placeholder="/mnt/media/movies/example.mp4"
-          />
-          <input
-            value={newType}
-            onChange={(event) => setNewType(event.target.value)}
-            placeholder="movie"
-          />
-          <button type="submit" disabled={createLoading}>
-            {createLoading ? 'Creating...' : 'Create'}
-          </button>
-        </form>
+        <p className="shortcuts">Shortcuts: Ctrl/Cmd+K focus search, Alt+Left/Right page catalog.</p>
 
         {itemsError && <p className="error">{itemsError}</p>}
 
