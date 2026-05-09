@@ -65,6 +65,7 @@ function DashboardPage() {
   const [updateLoading, setUpdateLoading] = useState(false)
 
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteCandidate, setDeleteCandidate] = useState<MediaItem | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
@@ -329,6 +330,16 @@ function DashboardPage() {
     } finally {
       setDeletingId(null)
     }
+  }
+
+  async function confirmDeleteCandidate() {
+    if (!deleteCandidate) {
+      return
+    }
+
+    const itemId = deleteCandidate.id
+    setDeleteCandidate(null)
+    await handleDelete(itemId)
   }
 
   return (
@@ -647,7 +658,7 @@ function DashboardPage() {
                         className="danger"
                         onClick={(event) => {
                           event.stopPropagation()
-                          void handleDelete(item.id)
+                          setDeleteCandidate(item)
                         }}
                         disabled={deletingId === item.id}
                       >
@@ -676,6 +687,37 @@ function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {deleteCandidate && (
+        <div className="modal-overlay" role="presentation" onClick={() => setDeleteCandidate(null)}>
+          <div
+            className="confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id="delete-modal-title">Delete media item?</h3>
+            <p>
+              This will permanently delete <strong>{deleteCandidate.title}</strong> from the catalog.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="danger"
+                onClick={() => {
+                  void confirmDeleteCandidate()
+                }}
+              >
+                Confirm Delete
+              </button>
+              <button type="button" className="secondary" onClick={() => setDeleteCandidate(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -106,11 +106,11 @@ button.danger {
 }
 
 button.secondary {
-  background: #2f5c75;
+  background: var(--brand-2);
 }
 
 button.secondary.active {
-  background: #1d7a5f;
+  background: #55339c;
 }
 
 .error {
@@ -325,6 +325,40 @@ th {
   display: flex;
   gap: 0.6rem;
   flex-wrap: wrap;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 21, 37, 0.48);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+  padding: 1rem;
+}
+
+.confirm-modal {
+  width: min(520px, 100%);
+  background: #fff;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  box-shadow: 0 24px 60px rgba(16, 21, 41, 0.35);
+}
+
+.confirm-modal h3 {
+  margin: 0;
+}
+
+.confirm-modal p {
+  margin-top: 0.6rem;
+}
+
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
 }
 
 @keyframes rise-in {

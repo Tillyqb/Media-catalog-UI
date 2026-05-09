@@ -167,6 +167,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Delete' }))
 
     await waitFor(() => {
       expect(screen.getByText('Original Title')).toBeInTheDocument()
@@ -216,6 +217,65 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Already in Catalog' })).toBeDisabled()
+    })
+  })
+
+  it('cancels delete when confirmation modal is dismissed', async () => {
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(mockedDeleteMediaItem).not.toHaveBeenCalled()
+    expect(screen.getByText('Original Title')).toBeInTheDocument()
+  })
+
+  it('handles keyboard shortcuts and pagination actions', async () => {
+    mockedListMediaItems.mockResolvedValue({ count: 1, results: [baseItem] })
+
+    render(<App />)
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    expect(screen.getByLabelText('Title')).toHaveFocus()
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Batman' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Batman Begins', level: 3 })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Next' })[0])
+    await waitFor(() => {
+      expect(mockedSearchMovies).toHaveBeenCalledWith('Batman', 2)
+    })
+
+    fireEvent.change(screen.getByLabelText('Items page'), { target: { value: '2' } })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Go' })[1])
+    await waitFor(() => {
+      expect(mockedListMediaItems).toHaveBeenCalled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '10/page' }))
+    await waitFor(() => {
+      expect(mockedListMediaItems).toHaveBeenCalledWith(expect.objectContaining({ limit: 10 }))
+    })
+  })
+
+  it('confirms delete through modal and calls delete API', async () => {
+    mockedDeleteMediaItem.mockResolvedValueOnce()
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('Original Title')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm Delete' }))
+
+    await waitFor(() => {
+      expect(mockedDeleteMediaItem).toHaveBeenCalledWith(1)
     })
   })
 })
