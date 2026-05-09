@@ -48,6 +48,20 @@
   animation: rise-in 460ms ease-out both;
 }
 
+.catalog-panel {
+  --catalog-purple-strong: #2f0f69;
+  --catalog-purple-soft: #9b74f0;
+  --catalog-purple-active: #240b54;
+  --catalog-purple-ink: #5a2aa8;
+}
+
+:root[data-theme='dark'] .catalog-panel {
+  --catalog-purple-strong: #b48cff;
+  --catalog-purple-soft: #6c47cd;
+  --catalog-purple-active: #c9a9ff;
+  --catalog-purple-ink: #c5a4ff;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
@@ -124,6 +138,18 @@ button.secondary {
 
 button.secondary.active {
   background: #55339c;
+}
+
+.catalog-panel button:not(.danger):not(.secondary):not(.sort-button) {
+  background: var(--catalog-purple-strong);
+}
+
+.catalog-panel button.secondary {
+  background: var(--catalog-purple-soft);
+}
+
+.catalog-panel button.secondary.active {
+  background: var(--catalog-purple-active);
 }
 
 .error {
@@ -259,9 +285,17 @@ th {
   gap: 0.35rem;
 }
 
+.catalog-panel .sort-button {
+  color: var(--catalog-purple-ink);
+}
+
 .sort-button:hover {
   filter: none;
   color: var(--ink);
+}
+
+.catalog-panel .sort-button:hover {
+  color: var(--catalog-purple-strong);
 }
 
 .clickable-row {

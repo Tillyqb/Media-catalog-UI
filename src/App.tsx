@@ -369,7 +369,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         </p>
       </header>
 
-      <section className="panel">
+      <section className="panel catalog-panel">
         <div className="panel-head">
           <h2>Movie Search</h2>
           <p>Endpoint: GET /movies/search</p>
