@@ -58,6 +58,78 @@ Then edit `.env`.
 npm run build
 ```
 
+## Deploy To Raspberry Pi
+
+This app builds to static files, so deployment on Raspberry Pi is lightweight.
+
+1. Build the frontend:
+
+```bash
+npm ci
+npm run build
+```
+
+2. Copy the built files to the Pi:
+
+```bash
+rsync -avz --delete dist/ pi@YOUR_PI_IP:/var/www/media-catalog-ui/
+```
+
+3. Install Nginx on the Pi:
+
+```bash
+sudo apt update
+sudo apt install -y nginx
+```
+
+4. Create site config on the Pi at `/etc/nginx/sites-available/media-catalog-ui`:
+
+```nginx
+server {
+  listen 80;
+  server_name _;
+
+  root /var/www/media-catalog-ui;
+  index index.html;
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+
+  location /api/ {
+    proxy_pass http://192.168.50.112:8001/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+}
+```
+
+5. Enable and reload Nginx:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/media-catalog-ui /etc/nginx/sites-enabled/media-catalog-ui
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+6. Open the app in your browser:
+
+```text
+http://YOUR_PI_IP/
+```
+
+If your Flask backend runs on the same Pi, change:
+
+```text
+proxy_pass http://192.168.50.112:8001/;
+```
+
+to:
+
+```text
+proxy_pass http://127.0.0.1:8001/;
+```
+
 ## Test
 
 ```bash
