@@ -150,6 +150,16 @@ To target a different backend:
 BACKEND_BASE_URL=http://your-host:8001 npm run smoke
 ```
 
+## License
+
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+You may copy, modify, and redistribute this software under the terms of the GPL-3.0.
+Any distributed modifications must also remain under GPL-3.0.
+
+For full license terms, see the GNU license text at:
+https://www.gnu.org/licenses/gpl-3.0.en.html
+
 ## Keyboard Shortcuts
 
 - `Ctrl/Cmd+K`: focus movie search input
