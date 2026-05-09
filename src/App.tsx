@@ -37,9 +37,27 @@ interface ThemeControls {
   onToggleTheme: () => void
 }
 
+function getImdbIdFromFilePath(filePath: string): string | null {
+  const match = filePath.match(/omdb:\/\/movie\/(tt\d+)/i)
+  return match?.[1] ?? null
+}
+
+function extractYear(value: string): string | null {
+  const match = value.match(/\b(19|20)\d{2}\b/)
+  return match?.[0] ?? null
+}
+
+function getCatalogReleaseYear(item: MediaItem, resolvedYear?: string): string {
+  if (resolvedYear) {
+    return resolvedYear
+  }
+
+  return extractYear(item.title) ?? extractYear(item.file_path) ?? '-'
+}
+
 function getRouteMovieId(item: MediaItem): string {
-  const match = item.file_path.match(/omdb:\/\/movie\/(tt\d+)/i)
-  return match?.[1] ?? `catalog-${item.id}`
+  const imdbId = getImdbIdFromFilePath(item.file_path)
+  return imdbId ?? `catalog-${item.id}`
 }
 
 function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
@@ -74,6 +92,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deleteCandidate, setDeleteCandidate] = useState<MediaItem | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [catalogYears, setCatalogYears] = useState<Record<number, string>>({})
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const createFormRef = useRef<HTMLFormElement | null>(null)
@@ -151,6 +170,55 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   useEffect(() => {
     void refreshItems(1, itemsLimit)
   }, [])
+
+  useEffect(() => {
+    const pendingItems = items.filter((item) => {
+      const imdbId = getImdbIdFromFilePath(item.file_path)
+      return Boolean(imdbId) && catalogYears[item.id] === undefined
+    })
+
+    if (pendingItems.length === 0) {
+      return
+    }
+
+    let cancelled = false
+
+    async function resolveCatalogYears() {
+      const entries = await Promise.all(
+        pendingItems.map(async (item) => {
+          const imdbId = getImdbIdFromFilePath(item.file_path)
+          if (!imdbId) {
+            return [item.id, getCatalogReleaseYear(item)] as const
+          }
+
+          try {
+            const movie = await getMovieByImdb(imdbId)
+            return [item.id, extractYear(movie.Year) ?? getCatalogReleaseYear(item)] as const
+          } catch {
+            return [item.id, getCatalogReleaseYear(item)] as const
+          }
+        }),
+      )
+
+      if (cancelled) {
+        return
+      }
+
+      setCatalogYears((current) => {
+        const next = { ...current }
+        entries.forEach(([itemId, year]) => {
+          next[itemId] = year
+        })
+        return next
+      })
+    }
+
+    void resolveCatalogYears()
+
+    return () => {
+      cancelled = true
+    }
+  }, [catalogYears, items])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -576,7 +644,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
               <tr>
                 <th>ID</th>
                 <th>Title</th>
-                <th>Path</th>
+                <th>YEAR</th>
                 <th>Type</th>
                 <th>Actions</th>
               </tr>
@@ -612,14 +680,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                       )}
                     </td>
                     <td>
-                      {isEditing ? (
-                        <input
-                          value={editPath}
-                          onChange={(event) => setEditPath(event.target.value)}
-                        />
-                      ) : (
-                        <span className="path">{item.file_path}</span>
-                      )}
+                      {getCatalogReleaseYear(item, catalogYears[item.id])}
                     </td>
                     <td>
                       {isEditing ? (
