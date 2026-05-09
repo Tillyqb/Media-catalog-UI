@@ -318,6 +318,106 @@ th {
   background: #115ca8;
 }
 
+@media (max-width: 920px) {
+  .app-shell {
+    width: min(1180px, 94vw);
+    margin-top: 1.2rem;
+  }
+
+  .masthead,
+  .panel {
+    padding: 1rem;
+  }
+
+  .inline-form,
+  .toolbar,
+  .create-form {
+    grid-template-columns: 1fr;
+  }
+
+  .pager {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .table-wrap {
+    overflow: visible;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  tbody tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card-bg);
+    padding: 0.3rem 0.55rem;
+  }
+
+  tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+    border-bottom: 1px solid var(--border);
+    padding: 0.55rem 0.2rem;
+  }
+
+  tbody td::before {
+    content: attr(data-label);
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+
+  tbody td:last-child {
+    border-bottom: none;
+  }
+
+  td.actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  td.actions::before {
+    grid-column: 1 / -1;
+  }
+
+  td.actions button,
+  tbody td input {
+    width: 100%;
+  }
+
+  .empty-cell {
+    display: block;
+    text-align: left;
+    border-bottom: none;
+  }
+
+  .empty-cell::before {
+    content: none;
+  }
+
+  .clickable-row:hover td {
+    background: transparent;
+  }
+}
+
 .details-page {
   padding-top: 1rem;
 }

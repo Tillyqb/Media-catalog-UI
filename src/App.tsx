@@ -666,7 +666,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                       })
                     }}
                   >
-                    <td>
+                    <td data-label="Title">
                       {isEditing ? (
                         <input
                           value={editTitle}
@@ -676,11 +676,11 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                         item.title
                       )}
                     </td>
-                    <td>
+                    <td data-label="YEAR">
                       {getCatalogReleaseYear(item, catalogYears[item.id])}
                     </td>
-                    <td>{getCatalogGenre(catalogGenres[item.id])}</td>
-                    <td>
+                    <td data-label="Genre">{getCatalogGenre(catalogGenres[item.id])}</td>
+                    <td data-label="Type">
                       {isEditing ? (
                         <input
                           value={editType}
@@ -690,7 +690,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                         item.media_type ?? '-'
                       )}
                     </td>
-                    <td className="actions">
+                    <td className="actions" data-label="Actions">
                       {isEditing ? (
                         <>
                           <button
