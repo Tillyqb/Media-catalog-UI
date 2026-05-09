@@ -2,6 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { HashRouter, Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
+  type CatalogSortKey,
+  type SortDirection,
+  extractYear,
+  getCatalogGenre,
+  getCatalogReleaseYear,
+  getImdbIdFromFilePath,
+  getRouteMovieId,
+  getSortIndicator,
+  isTypingTarget,
+  isValidPage,
+  sortCatalogItems,
+} from './appLogic'
+import {
   ApiError,
   createMediaItem,
   deleteMediaItem,
@@ -37,40 +50,6 @@ interface ThemeControls {
   onToggleTheme: () => void
 }
 
-type CatalogSortKey = 'id' | 'title' | 'year' | 'type'
-type SortDirection = 'asc' | 'desc'
-
-function getImdbIdFromFilePath(filePath: string): string | null {
-  const match = filePath.match(/omdb:\/\/movie\/(tt\d+)/i)
-  return match?.[1] ?? null
-}
-
-function extractYear(value: string): string | null {
-  const match = value.match(/\b(19|20)\d{2}\b/)
-  return match?.[0] ?? null
-}
-
-function getCatalogReleaseYear(item: MediaItem, resolvedYear?: string): string {
-  if (resolvedYear) {
-    return resolvedYear
-  }
-
-  return extractYear(item.title) ?? extractYear(item.file_path) ?? '-'
-}
-
-function getCatalogGenre(resolvedGenre?: string): string {
-  if (!resolvedGenre) {
-    return '-'
-  }
-
-  return resolvedGenre
-}
-
-function getRouteMovieId(item: MediaItem): string {
-  const imdbId = getImdbIdFromFilePath(item.file_path)
-  return imdbId ?? `catalog-${item.id}`
-}
-
 function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const navigate = useNavigate()
   const [searchTitle, setSearchTitle] = useState('')
@@ -100,7 +79,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [catalogYears, setCatalogYears] = useState<Record<number, string>>({})
   const [catalogGenres, setCatalogGenres] = useState<Record<number, string>>({})
-  const [catalogSortKey, setCatalogSortKey] = useState<CatalogSortKey>('id')
+  const [catalogSortKey, setCatalogSortKey] = useState<CatalogSortKey>('title')
   const [catalogSortDirection, setCatalogSortDirection] = useState<SortDirection>('asc')
 
   const searchInputRef = useRef<HTMLInputElement | null>(null)
@@ -195,12 +174,8 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
       const entries = await Promise.all(
         pendingItems.map(async (item) => {
           const imdbId = getImdbIdFromFilePath(item.file_path)
-          if (!imdbId) {
-            return [item.id, getCatalogReleaseYear(item), getCatalogGenre()] as const
-          }
-
           try {
-            const movie = await getMovieByImdb(imdbId)
+            const movie = await getMovieByImdb(imdbId as string)
             return [item.id, extractYear(movie.Year) ?? getCatalogReleaseYear(item), getCatalogGenre(movie.Genre)] as const
           } catch {
             return [item.id, getCatalogReleaseYear(item), getCatalogGenre()] as const
@@ -237,41 +212,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   }, [catalogGenres, catalogYears, items])
 
   const sortedItems = useMemo(() => {
-    const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
-    const directionFactor = catalogSortDirection === 'asc' ? 1 : -1
-
-    return [...items].sort((a, b) => {
-      if (catalogSortKey === 'id') {
-        return (a.id - b.id) * directionFactor
-      }
-
-      if (catalogSortKey === 'title') {
-        return collator.compare(a.title, b.title) * directionFactor
-      }
-
-      if (catalogSortKey === 'type') {
-        return collator.compare(a.media_type ?? '', b.media_type ?? '') * directionFactor
-      }
-
-      const aYear = Number.parseInt(getCatalogReleaseYear(a, catalogYears[a.id]), 10)
-      const bYear = Number.parseInt(getCatalogReleaseYear(b, catalogYears[b.id]), 10)
-      const aHasYear = Number.isFinite(aYear)
-      const bHasYear = Number.isFinite(bYear)
-
-      if (!aHasYear && !bHasYear) {
-        return 0
-      }
-
-      if (!aHasYear) {
-        return 1
-      }
-
-      if (!bHasYear) {
-        return -1
-      }
-
-      return (aYear - bYear) * directionFactor
-    })
+    return sortCatalogItems(items, catalogSortKey, catalogSortDirection, catalogYears)
   }, [catalogSortDirection, catalogSortKey, catalogYears, items])
 
   function toggleCatalogSort(nextSortKey: CatalogSortKey) {
@@ -284,19 +225,10 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
     setCatalogSortDirection('asc')
   }
 
-  function getSortIndicator(sortKey: CatalogSortKey): string {
-    if (catalogSortKey !== sortKey) {
-      return '↕'
-    }
-
-    return catalogSortDirection === 'asc' ? '↑' : '↓'
-  }
-
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null
-      const isTypingTarget =
-        target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+      const typing = isTypingTarget(target?.tagName, target?.isContentEditable)
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -304,7 +236,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
         return
       }
 
-      if (isTypingTarget) {
+      if (typing) {
         return
       }
 
@@ -422,16 +354,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
     }
   }
 
-  async function confirmDeleteCandidate() {
-    if (!deleteCandidate) {
-      return
-    }
-
-    const itemId = deleteCandidate.id
-    setDeleteCandidate(null)
-    await handleDelete(itemId)
-  }
-
   return (
     <div className="app-shell">
       <header className="masthead">
@@ -496,10 +418,10 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
           <button
             type="button"
             onClick={() => {
-              const page = Number(searchPageJump)
-              if (!Number.isFinite(page) || page < 1 || !activeSearchQuery) {
+              if (!isValidPage(searchPageJump) || !activeSearchQuery) {
                 return
               }
+              const page = Number(searchPageJump)
               void executeSearch(activeSearchQuery, Math.floor(page))
             }}
             disabled={searchLoading || !activeSearchQuery}
@@ -616,10 +538,10 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
           <button
             type="button"
             onClick={() => {
-              const page = Number(itemsPageJump)
-              if (!Number.isFinite(page) || page < 1) {
+              if (!isValidPage(itemsPageJump)) {
                 return
               }
+              const page = Number(itemsPageJump)
               void refreshItems(Math.floor(page))
             }}
             disabled={itemsLoading}
@@ -640,20 +562,10 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                   <button
                     type="button"
                     className="sort-button"
-                    aria-label="Sort by id"
-                    onClick={() => toggleCatalogSort('id')}
-                  >
-                    ID <span aria-hidden="true">{getSortIndicator('id')}</span>
-                  </button>
-                </th>
-                <th>
-                  <button
-                    type="button"
-                    className="sort-button"
                     aria-label="Sort by title"
                     onClick={() => toggleCatalogSort('title')}
                   >
-                    Title <span aria-hidden="true">{getSortIndicator('title')}</span>
+                    Title <span aria-hidden="true">{getSortIndicator(catalogSortKey, catalogSortDirection, 'title')}</span>
                   </button>
                 </th>
                 <th>
@@ -663,7 +575,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                     aria-label="Sort by year"
                     onClick={() => toggleCatalogSort('year')}
                   >
-                    YEAR <span aria-hidden="true">{getSortIndicator('year')}</span>
+                    YEAR <span aria-hidden="true">{getSortIndicator(catalogSortKey, catalogSortDirection, 'year')}</span>
                   </button>
                 </th>
                 <th>Genre</th>
@@ -674,7 +586,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                     aria-label="Sort by type"
                     onClick={() => toggleCatalogSort('type')}
                   >
-                    Type <span aria-hidden="true">{getSortIndicator('type')}</span>
+                    Type <span aria-hidden="true">{getSortIndicator(catalogSortKey, catalogSortDirection, 'type')}</span>
                   </button>
                 </th>
                 <th>Actions</th>
@@ -699,7 +611,6 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                       })
                     }}
                   >
-                    <td>{item.id}</td>
                     <td>
                       {isEditing ? (
                         <input
@@ -775,7 +686,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
               })}
               {!itemsLoading && items.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="empty-cell">
+                  <td colSpan={5} className="empty-cell">
                     No stored media items loaded.
                   </td>
                 </tr>
@@ -811,7 +722,9 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
                 type="button"
                 className="danger"
                 onClick={() => {
-                  void confirmDeleteCandidate()
+                  const itemId = deleteCandidate.id
+                  setDeleteCandidate(null)
+                  void handleDelete(itemId)
                 }}
               >
                 Confirm Delete
@@ -969,20 +882,15 @@ function MovieDetailsPage({ theme, onToggleTheme }: ThemeControls) {
     }
   }, [catalogItem?.title, imdbID, movie])
 
-  async function handleAddMovieToDatabase() {
-    if (!movie) {
-      setAddMovieError('Movie details are unavailable for this route.')
-      return
-    }
-
+  async function handleAddMovieToDatabase(targetMovie: MovieDetails) {
     setAddMovieError('')
     setAddMovieMessage('')
     setAddingMovie(true)
 
     try {
       await createMediaItem({
-        title: movie.Title,
-        file_path: `omdb://movie/${movie.imdbID}`,
+        title: targetMovie.Title,
+        file_path: `omdb://movie/${targetMovie.imdbID}`,
         media_type: 'movie',
       })
       setAlreadyInCatalog(true)
@@ -1017,7 +925,11 @@ function MovieDetailsPage({ theme, onToggleTheme }: ThemeControls) {
           <div className="details-actions">
             <button
               type="button"
-              onClick={handleAddMovieToDatabase}
+              onClick={() => {
+                if (movie) {
+                  void handleAddMovieToDatabase(movie)
+                }
+              }}
               disabled={!movie || fromCatalog || alreadyInCatalog || addingMovie || checkingCatalogMembership}
             >
               {fromCatalog || alreadyInCatalog
