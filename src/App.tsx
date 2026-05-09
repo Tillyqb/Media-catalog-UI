@@ -461,6 +461,7 @@ function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
             value={searchTitle}
             onChange={(event) => setSearchTitle(event.target.value)}
             placeholder="Dune"
+            autoComplete="off"
           />
           <button type="submit" disabled={searchLoading}>
             {searchLoading ? 'Searching...' : 'Search'}
