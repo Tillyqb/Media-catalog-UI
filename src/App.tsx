@@ -30,12 +30,19 @@ interface MovieRouteState {
   fromCatalog?: boolean
 }
 
+type ThemeMode = 'light' | 'dark'
+
+interface ThemeControls {
+  theme: ThemeMode
+  onToggleTheme: () => void
+}
+
 function getRouteMovieId(item: MediaItem): string {
   const match = item.file_path.match(/omdb:\/\/movie\/(tt\d+)/i)
   return match?.[1] ?? `catalog-${item.id}`
 }
 
-function DashboardPage() {
+function DashboardPage({ theme, onToggleTheme }: ThemeControls) {
   const navigate = useNavigate()
   const [searchTitle, setSearchTitle] = useState('')
   const [activeSearchQuery, setActiveSearchQuery] = useState('')
@@ -345,7 +352,12 @@ function DashboardPage() {
   return (
     <div className="app-shell">
       <header className="masthead">
-        <p className="kicker">media sorter</p>
+        <div className="masthead-top">
+          <p className="kicker">media sorter</p>
+          <button type="button" className="secondary theme-toggle" onClick={onToggleTheme}>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+        </div>
         <h1>Media Catalog Browser UI</h1>
         <p className="intro">
           Search OMDb, then manage your local catalog records from the Flask backend.
@@ -722,7 +734,7 @@ function DashboardPage() {
   )
 }
 
-function MovieDetailsPage() {
+function MovieDetailsPage({ theme, onToggleTheme }: ThemeControls) {
   const navigate = useNavigate()
   const { imdbID } = useParams<{ imdbID: string }>()
   const location = useLocation()
@@ -896,7 +908,12 @@ function MovieDetailsPage() {
   return (
     <div className="app-shell">
       <header className="masthead">
-        <p className="kicker">movie details</p>
+        <div className="masthead-top">
+          <p className="kicker">movie details</p>
+          <button type="button" className="secondary theme-toggle" onClick={onToggleTheme}>
+            {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+        </div>
         <h1>{displayMovie?.Title ?? catalogItem?.title ?? 'Movie details unavailable'}</h1>
         <p className="intro">IMDb ID: {imdbID}</p>
       </header>
@@ -988,11 +1005,28 @@ function MovieDetailsPage() {
 }
 
 function App() {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const storedTheme = window.localStorage.getItem('media-catalog-theme')
+    return storedTheme === 'light' ? 'light' : 'dark'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.localStorage.setItem('media-catalog-theme', theme)
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme((currentTheme) => (currentTheme === 'light' ? 'dark' : 'light'))
+  }
+
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/movies/:imdbID" element={<MovieDetailsPage />} />
+        <Route path="/" element={<DashboardPage theme={theme} onToggleTheme={toggleTheme} />} />
+        <Route
+          path="/movies/:imdbID"
+          element={<MovieDetailsPage theme={theme} onToggleTheme={toggleTheme} />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </HashRouter>

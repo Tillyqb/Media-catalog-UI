@@ -9,9 +9,21 @@
   padding: 2rem 2.4rem;
   border-radius: 1.2rem;
   border: 1px solid var(--border-strong);
-  background: linear-gradient(120deg, var(--panel) 0%, #f3fff8 52%, #eef5ff 100%);
+  background: linear-gradient(120deg, var(--panel) 0%, var(--masthead-accent-a) 52%, var(--masthead-accent-b) 100%);
   box-shadow: 0 20px 60px rgba(17, 28, 35, 0.08);
   animation: rise-in 460ms ease-out both;
+}
+
+.masthead-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.theme-toggle {
+  min-width: 122px;
 }
 
 .kicker {
@@ -80,7 +92,8 @@ button {
 
 input {
   padding: 0 0.7rem;
-  background: #ffffff;
+  background: var(--input-bg);
+  color: var(--ink);
 }
 
 button {
@@ -175,7 +188,7 @@ button.secondary.active {
   border: 1px solid var(--border);
   border-radius: 0.85rem;
   overflow: hidden;
-  background: #fcfdfd;
+  background: var(--card-bg);
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
@@ -190,7 +203,7 @@ button.secondary.active {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
-  background: #dfe9ec;
+  background: var(--poster-bg);
 }
 
 .movie-card div {
@@ -235,7 +248,7 @@ th {
 }
 
 .clickable-row:hover td {
-  background: #f0f8f5;
+  background: var(--row-hover);
 }
 
 .path {
@@ -301,7 +314,7 @@ th {
   max-width: 320px;
   border-radius: 0.75rem;
   border: 1px solid var(--border);
-  background: #dfe9ec;
+  background: var(--poster-bg);
 }
 
 .details-poster-fallback {
@@ -330,7 +343,7 @@ th {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(17, 21, 37, 0.48);
+  background: var(--overlay-bg);
   display: grid;
   place-items: center;
   z-index: 60;
@@ -339,7 +352,7 @@ th {
 
 .confirm-modal {
   width: min(520px, 100%);
-  background: #fff;
+  background: var(--modal-bg);
   border: 1px solid var(--border-strong);
   border-radius: 0.9rem;
   padding: 1rem;

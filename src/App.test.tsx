@@ -36,6 +36,7 @@ describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     window.location.hash = '#/'
+    window.localStorage.clear()
 
     mockedSearchMovies.mockResolvedValue({
       query: 'batman',
@@ -277,5 +278,20 @@ describe('App', () => {
     await waitFor(() => {
       expect(mockedDeleteMediaItem).toHaveBeenCalledWith(1)
     })
+  })
+
+  it('defaults to dark mode and toggles from the header', async () => {
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Original Title')).toBeInTheDocument()
+    })
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+    const lightModeButton = screen.getByRole('button', { name: 'Light Mode' })
+    fireEvent.click(lightModeButton)
+
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+    expect(screen.getByRole('button', { name: 'Dark Mode' })).toBeInTheDocument()
   })
 })
